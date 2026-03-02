@@ -12,7 +12,7 @@ Mouse-Warp-GUI is a lightweight Windows overlay and optional mouse-warp utility 
 - Transparent always-on-top multi-monitor overlays
 - Click-through overlays
 - Built-in optional cursor warp (`Mouse Warp` toggle)
-- Marker presets: `Boxes`, `Pong`, `Portal`, `Arrows`
+- Marker presets: `Boxes`, `Pong`, `Circle`, `Portals`, `Arrows` (`Portals` is a pulsing animation)
 - Color, outline, scale, gradient, and image customization
 - Image animation sequence support (`name-0.png`, `name-1.png`, ...)
 - Per-side image transform controls (rotate/flip)

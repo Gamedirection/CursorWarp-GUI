@@ -17,6 +17,14 @@
 - Numeric setting parsing guards to avoid render-loop failures from invalid input values.
 - README packaging instructions for PyInstaller `.exe` builds.
 
+## 2026-03-02 (Update 4)
+
+### Added
+- Pulsing `Portals` marker preset that draws animated concentric rings.
+
+### Changed
+- Static `Circle` preset replaced the earlier `Portal` preset name (legacy config values auto-migrate).
+
 ## 2026-03-02 (Update 2)
 
 ### Fixed

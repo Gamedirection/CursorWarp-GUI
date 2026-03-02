@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import ctypes
 import json
+import math
 import os
 import queue
 import re
@@ -18,6 +19,7 @@ import pystray
 import tkinter as tk
 from tkinter import filedialog
 from PIL import Image, ImageDraw, ImageOps, ImageTk
+import winreg
 
 
 class POINT(ctypes.Structure):
@@ -44,6 +46,8 @@ class CursorWarpGUIApp:
     POWERTOYS_MOUSE_WARP_DOC_URL = "https://learn.microsoft.com/windows/powertoys/mouse-utilities"
     GITHUB_URL = "https://github.com/Gamedirection/Mouse-Warp-GUI.git"
     COMMUNITY_URL = "https://join.gamedirection.net"
+    RUN_REG_SUBKEY = r"Software\\Microsoft\\Windows\\CurrentVersion\\Run"
+    RUN_VALUE_NAME = "CursorWarp-GUI"
 
     def __init__(self, debug: bool = False, click_through: bool = True) -> None:
         self.root = tk.Tk()
@@ -57,6 +61,7 @@ class CursorWarpGUIApp:
         self.show_out_marker = True
         self.hide_in_marker_on_touching_edges = False
         self.hide_out_marker_on_touching_edges = False
+        self.run_on_startup = False
         self.edge_gap = 2
         self.marker_size_px = 44
         self.size_mode = "Same Pixels"
@@ -82,6 +87,7 @@ class CursorWarpGUIApp:
         self.top_flip = False
         self.bottom_flip = False
         self._load_settings()
+        self._apply_run_on_startup(self.run_on_startup)
 
         self._queue: queue.Queue[str] = queue.Queue()
         self._tray: Optional[pystray.Icon] = None
@@ -128,6 +134,8 @@ class CursorWarpGUIApp:
             for k, v in d.items():
                 if hasattr(self, k):
                     setattr(self, k, v)
+            if self.marker_preset == "Portal":
+                self.marker_preset = "Circle"
         except Exception:
             pass
 
@@ -140,6 +148,7 @@ class CursorWarpGUIApp:
             "show_out_marker": self.show_out_marker,
             "hide_in_marker_on_touching_edges": self.hide_in_marker_on_touching_edges,
             "hide_out_marker_on_touching_edges": self.hide_out_marker_on_touching_edges,
+            "run_on_startup": self.run_on_startup,
             "edge_gap": self.edge_gap,
             "marker_size_px": self.marker_size_px,
             "size_mode": self.size_mode,
@@ -189,6 +198,53 @@ class CursorWarpGUIApp:
         draw = ImageDraw.Draw(fallback)
         draw.rounded_rectangle((8, 8, 56, 56), radius=8, fill=(60, 140, 255, 255))
         return fallback
+
+    def _run_on_startup_command(self) -> Optional[str]:
+        if sys.platform != "win32":
+            return None
+        if getattr(sys, "frozen", False):
+            return f'"{sys.executable}"'
+        pythonw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
+        if not os.path.isfile(pythonw):
+            pythonw = sys.executable
+        script = os.path.join(self._app_base_dir(), "cursorwarp_gui.pyw")
+        if not os.path.isfile(script):
+            script = os.path.join(self._app_base_dir(), "cursorwarp_gui.py")
+            if not os.path.isfile(script):
+                script = os.path.abspath(__file__)
+        return f'"{pythonw}" "{script}"'
+
+    def _open_run_registry_key(self, access: int):
+        try:
+            return winreg.OpenKey(winreg.HKEY_CURRENT_USER, self.RUN_REG_SUBKEY, 0, access)
+        except OSError:
+            try:
+                return winreg.CreateKey(winreg.HKEY_CURRENT_USER, self.RUN_REG_SUBKEY)
+            except OSError:
+                return None
+
+    def _apply_run_on_startup(self, enable: bool) -> None:
+        if sys.platform != "win32":
+            return
+        command = self._run_on_startup_command()
+        if not command:
+            return
+        key = self._open_run_registry_key(winreg.KEY_SET_VALUE)
+        if key is None:
+            return
+        try:
+            if enable:
+                winreg.SetValueEx(key, self.RUN_VALUE_NAME, 0, winreg.REG_SZ, command)
+            else:
+                try:
+                    winreg.DeleteValue(key, self.RUN_VALUE_NAME)
+                except FileNotFoundError:
+                    pass
+        finally:
+            try:
+                winreg.CloseKey(key)
+            except Exception:
+                pass
 
     def _on_toggle(self, _icon, _item) -> None:
         self._queue.put("toggle")
@@ -249,6 +305,7 @@ class CursorWarpGUIApp:
             "mouse_warp_enabled", "click_through_enabled", "display_mode", "span_across_displays", "show_out_marker",
             "hide_in_marker_on_touching_edges",
             "hide_out_marker_on_touching_edges",
+            "run_on_startup",
             "marker_size_px", "size_mode", "min_scale", "max_scale", "gradient_range_px",
             "scale_with_proximity", "gradient_enabled", "dark_mode_enabled", "clean_png_alpha", "stretch_image_to_bounds",
             "marker_preset", "arrow_direction_mode", "animation_fps", "in_image_path", "out_image_path",
@@ -266,6 +323,7 @@ class CursorWarpGUIApp:
         tk.Checkbutton(frame, text="Show Out marker", variable=vars_["show_out_marker"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Hide In marker on touching display edges", variable=vars_["hide_in_marker_on_touching_edges"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Hide Out marker on touching display edges", variable=vars_["hide_out_marker_on_touching_edges"], anchor="w").pack(fill="x")
+        tk.Checkbutton(frame, text="Run on startup", variable=vars_["run_on_startup"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Scale with proximity", variable=vars_["scale_with_proximity"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Gradient enabled", variable=vars_["gradient_enabled"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Dark mode (settings UI)", variable=vars_["dark_mode_enabled"], anchor="w").pack(fill="x")
@@ -276,7 +334,7 @@ class CursorWarpGUIApp:
         tk.Label(row, text="Display mode").pack(side="left")
         tk.OptionMenu(row, vars_["display_mode"], "2", "8").pack(side="left", padx=6)
         tk.Label(row, text="Preset").pack(side="left", padx=(10, 0))
-        tk.OptionMenu(row, vars_["marker_preset"], "Boxes", "Pong", "Portal", "Arrows").pack(side="left", padx=6)
+        tk.OptionMenu(row, vars_["marker_preset"], "Boxes", "Pong", "Circle", "Portals", "Arrows").pack(side="left", padx=6)
         tk.Label(row, text="Arrow dir").pack(side="left", padx=(10, 0))
         tk.OptionMenu(row, vars_["arrow_direction_mode"], "Toward Edge", "Into Screen").pack(side="left", padx=6)
 
@@ -338,6 +396,7 @@ class CursorWarpGUIApp:
                 else:
                     setattr(self, k, str(v.get()))
             self._save_settings()
+            self._apply_run_on_startup(self.run_on_startup)
             self._styled.clear()
             self._image_cache.clear()
             self._animation_cache.clear()
@@ -490,8 +549,17 @@ class CursorWarpGUIApp:
             return
 
         preset = self.marker_preset
-        if preset == "Portal":
+        if preset == "Circle":
             c.create_oval(lx - h, ly - h, lx + h, ly + h, fill=color, outline="#ffffff", width=2)
+            return
+        if preset == "Portals":
+            phase = time.monotonic() * 2.8 + (math.pi if is_out else 0.0)
+            pulse = (math.sin(phase) + 1.0) / 2.0
+            outer = h * (1.0 + 0.25 * pulse)
+            inner = h * (0.55 + 0.25 * (1.0 - pulse))
+            stroke = max(2, int(2 + pulse * 3))
+            c.create_oval(lx - outer, ly - outer, lx + outer, ly + outer, outline=color, width=stroke)
+            c.create_oval(lx - inner, ly - inner, lx + inner, ly + inner, outline=color, width=max(1, stroke - 1))
             return
         if preset == "Pong":
             t = max(5, h // 3)
