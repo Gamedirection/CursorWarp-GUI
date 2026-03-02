@@ -4,6 +4,7 @@
   "display_mode": "2",
   "span_across_displays": true,
   "show_out_marker": true,
+  "hide_out_marker_on_touching_edges": true,
   "edge_gap": 2,
   "marker_size_px": 24,
   "size_mode": "Per-Monitor DPI",
