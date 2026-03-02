@@ -1,11 +1,6 @@
 ﻿# Mouse-Warp-GUI
 
-<div style="align-items: center; display: flex;">
-  <a>
-    <img src="./icon/icon.png" width="250" alt="Mouse-Warp-GUI logo">
-  </a>
-</div>
-
+<img src="./icon/icon.png" width="250" alt="Mouse-Warp-GUI logo">
 <br>
 
 Mouse-Warp-GUI is a lightweight Windows overlay and optional mouse-warp utility inspired by PowerToys Mouse Warp.
@@ -17,12 +12,7 @@ Mouse-Warp-GUI is a lightweight Windows overlay and optional mouse-warp utility 
 
 ## Features
 
-<div style="align-items: center; display: flex;">
-  <a>
-    <img src="./screenshots/Demo.webp" width="500" alt="Demo of App Being Used">
-  </a>
-</div>
-
+<img src="./screenshots/Demo.webp" width="500" alt="Demo of App Being Used">
 
 - Transparent always-on-top multi-monitor overlays
 - Click-through overlays
