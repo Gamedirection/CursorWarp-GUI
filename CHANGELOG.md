@@ -1,4 +1,21 @@
-﻿# Changelog
+# Changelog
+
+## 2026-03-02 (Update 3)
+
+### Fixed
+- Gradient rendering now updates correctly from edge distance (approach marker trends blue, exit marker trends orange).
+- Marker scaling is now applied at draw-time and no longer fixed to a hardcoded size.
+- Large marker/icon edge placement now uses size-aware padding to prevent clipping.
+- Packaged executable icon asset lookup now works using app base path (`_MEIPASS` for frozen builds).
+
+### Added
+- Marker sizing settings:
+  - `Base size (px)`
+  - `Size mode`: `Same Pixels`, `Per-Monitor DPI`, `Resolution Relative`
+  - `Min scale` / `Max scale`
+  - `Gradient range (px)`
+- Numeric setting parsing guards to avoid render-loop failures from invalid input values.
+- README packaging instructions for PyInstaller `.exe` builds.
 
 ## 2026-03-02 (Update 2)
 

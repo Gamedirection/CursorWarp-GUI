@@ -16,6 +16,11 @@ Mouse-Warp-GUI is a lightweight Windows overlay and optional mouse-warp utility 
 - Color, outline, scale, gradient, and image customization
 - Image animation sequence support (`name-0.png`, `name-1.png`, ...)
 - Per-side image transform controls (rotate/flip)
+- Marker size controls:
+  - `Base size (px)`
+  - `Size mode`: `Same Pixels`, `Per-Monitor DPI`, `Resolution Relative`
+  - `Min scale` / `Max scale`
+  - `Gradient range (px)`
 - Settings persistence in `cursorwarp_gui_settings.json`
 - Tray menu: `Turn Off/On`, `Debug`, `Settings`, `Quit`
 - Global quit hotkey: `Ctrl + Shift + Alt + Q`
@@ -44,6 +49,12 @@ Primary entrypoint:
 python cursorwarp_gui.py
 ```
 
+No-terminal launch on Windows:
+
+```powershell
+pythonw .\cursorwarp_gui.pyw
+```
+
 Compatibility entrypoints (still supported):
 
 ```powershell
@@ -56,6 +67,24 @@ Debug mode:
 ```powershell
 python cursorwarp_gui.py --debug
 ```
+
+## Build `.exe` (Windows)
+
+Install PyInstaller:
+
+```powershell
+python -m pip install pyinstaller
+```
+
+Build:
+
+```powershell
+pyinstaller --noconsole --onefile --name Mouse-Warp-GUI --icon .\icon\icon.ico --add-data "icon;icon" .\cursorwarp_gui.py
+```
+
+Output:
+
+- `.\dist\Mouse-Warp-GUI.exe`
 
 ## Animation File Naming
 
