@@ -17,6 +17,13 @@ Mouse-Warp-GUI is a lightweight Windows overlay and optional mouse-warp utility 
 
 ## Features
 
+<div style="align-items: center; display: flex;">
+  <a>
+    <img src="./screenshots/Demo.webp" width="500" alt="Demo of App Being Used">
+  </a>
+</div>
+
+
 - Transparent always-on-top multi-monitor overlays
 - Click-through overlays
 - Built-in optional cursor warp (`Mouse Warp` toggle)
@@ -35,6 +42,10 @@ Mouse-Warp-GUI is a lightweight Windows overlay and optional mouse-warp utility 
 - Settings persistence in `cursorwarp_gui_settings.json`
 - Tray menu: `Turn Off/On`, `Debug`, `Settings`, `Quit`
 - Global quit hotkey: `Ctrl + Shift + Alt + Q`
+
+
+<img width="912" height="1284" alt="image" src="https://github.com/user-attachments/assets/57d4158c-d145-462a-aad6-f15192377882" />
+
 
 ## PowerToys Links
 
