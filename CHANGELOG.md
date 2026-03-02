@@ -21,6 +21,7 @@
 
 ### Added
 - Pulsing `Portals` marker preset that draws animated concentric rings.
+- Settings to customize the in-fill/out-fill colors, outline color, and outline width for shapes.
 
 ### Changed
 - Static `Circle` preset replaced the earlier `Portal` preset name (legacy config values auto-migrate).

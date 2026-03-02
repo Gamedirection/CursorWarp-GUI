@@ -17,7 +17,7 @@ from typing import List, Optional, Tuple
 
 import pystray
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import colorchooser, filedialog
 from PIL import Image, ImageDraw, ImageOps, ImageTk
 import winreg
 
@@ -62,6 +62,10 @@ class CursorWarpGUIApp:
         self.hide_in_marker_on_touching_edges = False
         self.hide_out_marker_on_touching_edges = False
         self.run_on_startup = False
+        self.in_fill_color = "#0070ff"
+        self.out_fill_color = "#ff7f1f"
+        self.outline_color = "#ffffff"
+        self.outline_width = 2.0
         self.edge_gap = 2
         self.marker_size_px = 44
         self.size_mode = "Same Pixels"
@@ -149,6 +153,10 @@ class CursorWarpGUIApp:
             "hide_in_marker_on_touching_edges": self.hide_in_marker_on_touching_edges,
             "hide_out_marker_on_touching_edges": self.hide_out_marker_on_touching_edges,
             "run_on_startup": self.run_on_startup,
+            "in_fill_color": self.in_fill_color,
+            "out_fill_color": self.out_fill_color,
+            "outline_color": self.outline_color,
+            "outline_width": self.outline_width,
             "edge_gap": self.edge_gap,
             "marker_size_px": self.marker_size_px,
             "size_mode": self.size_mode,
@@ -305,7 +313,7 @@ class CursorWarpGUIApp:
             "mouse_warp_enabled", "click_through_enabled", "display_mode", "span_across_displays", "show_out_marker",
             "hide_in_marker_on_touching_edges",
             "hide_out_marker_on_touching_edges",
-            "run_on_startup",
+            "run_on_startup", "in_fill_color", "out_fill_color", "outline_color", "outline_width",
             "marker_size_px", "size_mode", "min_scale", "max_scale", "gradient_range_px",
             "scale_with_proximity", "gradient_enabled", "dark_mode_enabled", "clean_png_alpha", "stretch_image_to_bounds",
             "marker_preset", "arrow_direction_mode", "animation_fps", "in_image_path", "out_image_path",
@@ -326,6 +334,37 @@ class CursorWarpGUIApp:
         tk.Checkbutton(frame, text="Run on startup", variable=vars_["run_on_startup"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Scale with proximity", variable=vars_["scale_with_proximity"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Gradient enabled", variable=vars_["gradient_enabled"], anchor="w").pack(fill="x")
+        color_frame = tk.Frame(frame)
+        color_frame.pack(fill="x", pady=(4, 2))
+
+        def add_color_control(label_text: str, var_name: str) -> tk.Button:
+            row = tk.Frame(color_frame); row.pack(fill="x", pady=(2, 0))
+            tk.Label(row, text=label_text).pack(side="left")
+            entry = tk.Entry(row, textvariable=vars_[var_name], width=12)
+            entry.pack(side="left", padx=6)
+            btn = tk.Button(row, text="Pick", width=8)
+            btn.pack(side="left")
+            def update_preview(*_args) -> None:
+                color = vars_[var_name].get().strip() if vars_[var_name].get() else "#000000"
+                try:
+                    btn.configure(bg=color)
+                except tk.TclError:
+                    btn.configure(bg="#000000")
+            vars_[var_name].trace_add("write", update_preview)
+            update_preview()
+            def choose_color() -> None:
+                result = colorchooser.askcolor(color=vars_[var_name].get(), parent=win)
+                if result and result[1]:
+                    vars_[var_name].set(result[1])
+            btn.configure(command=choose_color)
+            return btn
+
+        add_color_control("In fill color", "in_fill_color")
+        add_color_control("Out fill color", "out_fill_color")
+        add_color_control("Outline color", "outline_color")
+        width_row = tk.Frame(frame); width_row.pack(fill="x", pady=(2, 0))
+        tk.Label(width_row, text="Outline width").pack(side="left")
+        tk.Entry(width_row, textvariable=vars_["outline_width"], width=8).pack(side="left", padx=6)
         tk.Checkbutton(frame, text="Dark mode (settings UI)", variable=vars_["dark_mode_enabled"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Clean PNG alpha edges", variable=vars_["clean_png_alpha"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Stretch image to marker bounds", variable=vars_["stretch_image_to_bounds"], anchor="w").pack(fill="x", pady=(0, 8))
@@ -548,32 +587,34 @@ class CursorWarpGUIApp:
             c.create_image(lx, ly, image=image, anchor="center")
             return
 
+        outline = self._outline_color_value()
+        outline_w = self._outline_width_value()
         preset = self.marker_preset
         if preset == "Circle":
-            c.create_oval(lx - h, ly - h, lx + h, ly + h, fill=color, outline="#ffffff", width=2)
+            c.create_oval(lx - h, ly - h, lx + h, ly + h, fill=color, outline=outline, width=outline_w)
             return
         if preset == "Portals":
             phase = time.monotonic() * 2.8 + (math.pi if is_out else 0.0)
             pulse = (math.sin(phase) + 1.0) / 2.0
             outer = h * (1.0 + 0.25 * pulse)
             inner = h * (0.55 + 0.25 * (1.0 - pulse))
-            stroke = max(2, int(2 + pulse * 3))
-            c.create_oval(lx - outer, ly - outer, lx + outer, ly + outer, outline=color, width=stroke)
-            c.create_oval(lx - inner, ly - inner, lx + inner, ly + inner, outline=color, width=max(1, stroke - 1))
+            stroke = max(1, int(outline_w + pulse * 3))
+            c.create_oval(lx - outer, ly - outer, lx + outer, ly + outer, outline=outline, width=stroke)
+            c.create_oval(lx - inner, ly - inner, lx + inner, ly + inner, outline=outline, width=max(1, stroke - 1))
             return
         if preset == "Pong":
             t = max(5, h // 3)
             if edge in ("left", "right"):
-                c.create_rectangle(lx - t, ly - h, lx + t, ly + h, fill=color, outline="#ffffff", width=2)
+                c.create_rectangle(lx - t, ly - h, lx + t, ly + h, fill=color, outline=outline, width=outline_w)
             else:
-                c.create_rectangle(lx - h, ly - t, lx + h, ly + t, fill=color, outline="#ffffff", width=2)
+                c.create_rectangle(lx - h, ly - t, lx + h, ly + t, fill=color, outline=outline, width=outline_w)
             return
         if preset == "Arrows":
             into_screen = self.arrow_direction_mode == "Into Screen"
             points = self._arrow_points(lx, ly, h, edge, into_screen, is_out)
-            c.create_polygon(points, fill=color, outline="#ffffff", width=2)
+            c.create_polygon(points, fill=color, outline=outline, width=outline_w)
             return
-        c.create_rectangle(lx - h, ly - h, lx + h, ly + h, fill=color, outline="#ffffff", width=2)
+        c.create_rectangle(lx - h, ly - h, lx + h, ly + h, fill=color, outline=outline, width=outline_w)
 
     def _get_marker_image(self, size: int, edge: str, is_out: bool) -> Optional[tk.PhotoImage]:
         path = (self.out_image_path if is_out else self.in_image_path).strip()
@@ -742,10 +783,12 @@ class CursorWarpGUIApp:
         return f"#{rr:02x}{rg:02x}{rb:02x}"
 
     def _marker_colors(self, proximity: float) -> Tuple[str, str]:
+        in_base = self._normalize_hex_color(self.in_fill_color, "#0070ff")
+        out_base = self._normalize_hex_color(self.out_fill_color, "#ff7f1f")
         if not self.gradient_enabled:
-            return "#0070ff", "#ff7f1f"
-        in_color = self._lerp_color_hex("#ff7f1f", "#0070ff", proximity)
-        out_color = self._lerp_color_hex("#0070ff", "#ff7f1f", proximity)
+            return in_base, out_base
+        in_color = self._lerp_color_hex(out_base, in_base, proximity)
+        out_color = self._lerp_color_hex(in_base, out_base, proximity)
         return in_color, out_color
 
     def _edge_proximity(self, m: Monitor, edge: str, x: int, y: int) -> float:
@@ -779,6 +822,30 @@ class CursorWarpGUIApp:
             return float(value)
         except Exception:
             return default
+
+    def _normalize_hex_color(self, value: object, fallback: str) -> str:
+        if not isinstance(value, str):
+            return fallback
+        col = value.strip()
+        if not col:
+            return fallback
+        if not col.startswith("#"):
+            col = "#" + col
+        if len(col) == 4:
+            col = "#" + "".join(ch * 2 for ch in col[1:])
+        if len(col) != 7:
+            return fallback
+        try:
+            int(col[1:], 16)
+            return col.lower()
+        except ValueError:
+            return fallback
+
+    def _outline_color_value(self) -> str:
+        return self._normalize_hex_color(self.outline_color, "#ffffff")
+
+    def _outline_width_value(self) -> float:
+        return max(1.0, self._safe_float(self.outline_width, 2.0))
 
     def _dpi_scale_for_monitor(self, monitor_idx: int) -> float:
         if monitor_idx < 0 or monitor_idx >= len(self._overlays):
