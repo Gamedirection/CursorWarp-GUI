@@ -55,6 +55,7 @@ class CursorWarpGUIApp:
         self.display_mode = "2"
         self.span_across_displays = True
         self.show_out_marker = True
+        self.hide_in_marker_on_touching_edges = False
         self.hide_out_marker_on_touching_edges = False
         self.edge_gap = 2
         self.marker_size_px = 44
@@ -137,6 +138,7 @@ class CursorWarpGUIApp:
             "display_mode": self.display_mode,
             "span_across_displays": self.span_across_displays,
             "show_out_marker": self.show_out_marker,
+            "hide_in_marker_on_touching_edges": self.hide_in_marker_on_touching_edges,
             "hide_out_marker_on_touching_edges": self.hide_out_marker_on_touching_edges,
             "edge_gap": self.edge_gap,
             "marker_size_px": self.marker_size_px,
@@ -245,6 +247,7 @@ class CursorWarpGUIApp:
         vars_ = {}
         for name in [
             "mouse_warp_enabled", "click_through_enabled", "display_mode", "span_across_displays", "show_out_marker",
+            "hide_in_marker_on_touching_edges",
             "hide_out_marker_on_touching_edges",
             "marker_size_px", "size_mode", "min_scale", "max_scale", "gradient_range_px",
             "scale_with_proximity", "gradient_enabled", "dark_mode_enabled", "clean_png_alpha", "stretch_image_to_bounds",
@@ -261,6 +264,7 @@ class CursorWarpGUIApp:
         tk.Checkbutton(frame, text="Enable click-through", variable=vars_["click_through_enabled"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Span Across Displays", variable=vars_["span_across_displays"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Show Out marker", variable=vars_["show_out_marker"], anchor="w").pack(fill="x")
+        tk.Checkbutton(frame, text="Hide In marker on touching display edges", variable=vars_["hide_in_marker_on_touching_edges"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Hide Out marker on touching display edges", variable=vars_["hide_out_marker_on_touching_edges"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Scale with proximity", variable=vars_["scale_with_proximity"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Gradient enabled", variable=vars_["gradient_enabled"], anchor="w").pack(fill="x")
@@ -465,7 +469,8 @@ class CursorWarpGUIApp:
         in_color, out_color = self._marker_colors(proximity)
         ix, iy = self._edge_point(m, edge, x, y)
         ox, oy, out_edge = self._target_point(idx, edge, x, y)
-        self._draw_marker(ix, iy, in_color, edge, is_out=False, proximity=proximity)
+        if not (self.hide_in_marker_on_touching_edges and touching_adjacent):
+            self._draw_marker(ix, iy, in_color, edge, is_out=False, proximity=proximity)
         if self.show_out_marker and not (self.hide_out_marker_on_touching_edges and touching_adjacent):
             self._draw_marker(ox, oy, out_color, out_edge, is_out=True, proximity=proximity)
         self._last_pos = (x, y)
