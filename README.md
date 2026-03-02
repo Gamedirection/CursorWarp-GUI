@@ -1,5 +1,13 @@
 ﻿# Mouse-Warp-GUI
 
+<div style="align-items: center; display: flex;">
+  <a>
+    <img src="./icon/icon.png" width="250" alt="Mouse-Warp-GUI logo">
+  </a>
+</div>
+
+<br>
+
 Mouse-Warp-GUI is a lightweight Windows overlay and optional mouse-warp utility inspired by PowerToys Mouse Warp.
 
 - Blue `In` marker shows where warp input is detected.
