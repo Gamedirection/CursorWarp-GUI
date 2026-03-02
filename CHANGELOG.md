@@ -17,6 +17,12 @@
 - Numeric setting parsing guards to avoid render-loop failures from invalid input values.
 - README packaging instructions for PyInstaller `.exe` builds.
 
+## 2026-03-02 (Update 5)
+
+### Added
+- Edge-offset control so you can nudge markers inward or outward by entering positive or negative pixel values.
+- “Use image markers” override that shows shapes when toggled off and image assets when toggled on.
+
 ## 2026-03-02 (Update 4)
 
 ### Added

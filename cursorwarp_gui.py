@@ -62,11 +62,26 @@ class CursorWarpGUIApp:
         self.hide_in_marker_on_touching_edges = False
         self.hide_out_marker_on_touching_edges = False
         self.run_on_startup = False
+        self.edge_gap = 2
+        self.edge_offset = 0.0
+        self.marker_size_px = 44
+        self.size_mode = "Same Pixels"
+        self.min_scale = 1.0
+        self.max_scale = 1.8
+        self.gradient_range_px = 240
+        self.scale_with_proximity = True
+        self.gradient_enabled = True
+        self.dark_mode_enabled = False
+        self.clean_png_alpha = True
+        self.stretch_image_to_bounds = False
+        self.marker_preset = "Portals"
+        self.arrow_direction_mode = "Toward Edge"
+        self.animation_fps = 12.0
         self.in_fill_color = "#0070ff"
         self.out_fill_color = "#ff7f1f"
         self.outline_color = "#ffffff"
         self.outline_width = 2.0
-        self.edge_gap = 2
+        self.use_image_markers = True
         self.marker_size_px = 44
         self.size_mode = "Same Pixels"
         self.min_scale = 1.0
@@ -153,10 +168,12 @@ class CursorWarpGUIApp:
             "hide_in_marker_on_touching_edges": self.hide_in_marker_on_touching_edges,
             "hide_out_marker_on_touching_edges": self.hide_out_marker_on_touching_edges,
             "run_on_startup": self.run_on_startup,
+            "edge_offset": self.edge_offset,
             "in_fill_color": self.in_fill_color,
             "out_fill_color": self.out_fill_color,
             "outline_color": self.outline_color,
             "outline_width": self.outline_width,
+            "use_image_markers": self.use_image_markers,
             "edge_gap": self.edge_gap,
             "marker_size_px": self.marker_size_px,
             "size_mode": self.size_mode,
@@ -313,8 +330,8 @@ class CursorWarpGUIApp:
             "mouse_warp_enabled", "click_through_enabled", "display_mode", "span_across_displays", "show_out_marker",
             "hide_in_marker_on_touching_edges",
             "hide_out_marker_on_touching_edges",
-            "run_on_startup", "in_fill_color", "out_fill_color", "outline_color", "outline_width",
-            "marker_size_px", "size_mode", "min_scale", "max_scale", "gradient_range_px",
+            "run_on_startup", "use_image_markers", "in_fill_color", "out_fill_color", "outline_color", "outline_width",
+            "marker_size_px", "size_mode", "min_scale", "max_scale", "gradient_range_px", "edge_offset",
             "scale_with_proximity", "gradient_enabled", "dark_mode_enabled", "clean_png_alpha", "stretch_image_to_bounds",
             "marker_preset", "arrow_direction_mode", "animation_fps", "in_image_path", "out_image_path",
             "left_rotate_deg", "right_rotate_deg", "top_rotate_deg", "bottom_rotate_deg", "left_flip", "right_flip", "top_flip", "bottom_flip",
@@ -332,6 +349,7 @@ class CursorWarpGUIApp:
         tk.Checkbutton(frame, text="Hide In marker on touching display edges", variable=vars_["hide_in_marker_on_touching_edges"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Hide Out marker on touching display edges", variable=vars_["hide_out_marker_on_touching_edges"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Run on startup", variable=vars_["run_on_startup"], anchor="w").pack(fill="x")
+        tk.Checkbutton(frame, text="Use image markers when available", variable=vars_["use_image_markers"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Scale with proximity", variable=vars_["scale_with_proximity"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Gradient enabled", variable=vars_["gradient_enabled"], anchor="w").pack(fill="x")
         color_frame = tk.Frame(frame)
@@ -365,6 +383,9 @@ class CursorWarpGUIApp:
         width_row = tk.Frame(frame); width_row.pack(fill="x", pady=(2, 0))
         tk.Label(width_row, text="Outline width").pack(side="left")
         tk.Entry(width_row, textvariable=vars_["outline_width"], width=8).pack(side="left", padx=6)
+        offset_row = tk.Frame(frame); offset_row.pack(fill="x", pady=(2, 0))
+        tk.Label(offset_row, text="Edge offset (px)").pack(side="left")
+        tk.Entry(offset_row, textvariable=vars_["edge_offset"], width=8).pack(side="left", padx=6)
         tk.Checkbutton(frame, text="Dark mode (settings UI)", variable=vars_["dark_mode_enabled"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Clean PNG alpha edges", variable=vars_["clean_png_alpha"], anchor="w").pack(fill="x")
         tk.Checkbutton(frame, text="Stretch image to marker bounds", variable=vars_["stretch_image_to_bounds"], anchor="w").pack(fill="x", pady=(0, 8))
@@ -581,7 +602,7 @@ class CursorWarpGUIApp:
         lx, ly = x - m.left, y - m.top
         h = max(6, self._marker_half_size(idx, proximity))
 
-        image = self._get_marker_image(size=h * 2, edge=edge, is_out=is_out)
+        image = self._get_marker_image(size=h * 2, edge=edge, is_out=is_out) if self.use_image_markers else None
         if image is not None:
             self._frame_images.append(image)
             c.create_image(lx, ly, image=image, anchor="center")
@@ -728,14 +749,14 @@ class CursorWarpGUIApp:
         self._last_warp_t = now
 
     def _edge_point(self, m: Monitor, edge: str, x: int, y: int) -> Tuple[int, int]:
-        h = self._edge_pad()
+        pad = self._edge_padding_with_offset()
         if edge == "left":
-            return m.left + h, max(m.top + h, min(m.bottom - h, y))
+            return m.left + pad, max(m.top + pad, min(m.bottom - pad, y))
         if edge == "right":
-            return m.right - h, max(m.top + h, min(m.bottom - h, y))
+            return m.right - pad, max(m.top + pad, min(m.bottom - pad, y))
         if edge == "top":
-            return max(m.left + h, min(m.right - h, x)), m.top + h
-        return max(m.left + h, min(m.right - h, x)), m.bottom - h
+            return max(m.left + pad, min(m.right - pad, x)), m.top + pad
+        return max(m.left + pad, min(m.right - pad, x)), m.bottom - pad
 
     def _target_point(self, idx: int, edge: str, x: int, y: int) -> Tuple[int, int, str]:
         src = self._monitors[idx]
@@ -751,7 +772,7 @@ class CursorWarpGUIApp:
             tgt = (max(line, key=lambda m: m.bottom) if edge == "top" else min(line, key=lambda m: m.top)) if line else src
             target_edge = "bottom" if edge == "top" else "top"
 
-        pad = self._edge_pad()
+        pad = self._edge_padding_with_offset()
         if target_edge == "left":
             tx = tgt.left + pad
             ty = max(tgt.top + pad, min(tgt.bottom - pad, y))
@@ -771,6 +792,11 @@ class CursorWarpGUIApp:
         hi = max(1.0, self._safe_float(self.max_scale, 1.8))
         gap = self._safe_float(self.edge_gap, 2.0)
         return int(max(10, round((base * hi) / 2.0 + gap)))
+
+    def _edge_padding_with_offset(self) -> int:
+        base = self._edge_pad()
+        offset = self._safe_float(self.edge_offset, 0.0)
+        return int(max(4, round(base + offset)))
 
     @staticmethod
     def _lerp_color_hex(a_hex: str, b_hex: str, t: float) -> str:
